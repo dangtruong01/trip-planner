@@ -25,8 +25,8 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-8 sm:p-20 text-center space-y-8 animate-in fade-in duration-700">
-      <header className="flex flex-col items-center space-y-4">
+    <div className="flex flex-col items-center min-h-screen p-8 sm:p-20 text-center animate-in fade-in duration-700">
+      <header className="flex flex-col items-center space-y-4 mb-12 flex-grow">
         <div className="p-4 rounded-full border-2 border-primary/20 bg-card shadow-lg">
           <Compass className="w-16 h-16 text-secondary" strokeWidth={1} />
         </div>
@@ -79,7 +79,7 @@ export default function Home() {
         )}
       </main>
 
-      <footer className="absolute bottom-8 text-sm text-primary/50">
+      <footer className="mt-12 text-sm text-primary/50">
         <p>Est. 2025 • Crafted with patience and code</p>
       </footer>
     </div>

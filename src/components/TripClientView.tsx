@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { ArrowLeft, Clock, MapPin, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, Clock, MapPin, ChevronDown, ChevronUp, Sparkles, X } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils"; // Assuming we might add utils later, but for now inline is fine, I'll use clsx manually if needed or just template literals.
 // Actually checking package.json I see clsx installed, so I can use it if I want but standard strings are fine for this simplicity.
@@ -39,6 +39,9 @@ export default function TripClientView({ id }: { id: string }) {
     const [selectedDayIndex, setSelectedDayIndex] = useState(0);
     const [expandedActivityIndex, setExpandedActivityIndex] = useState<number | null>(null);
     const [activeLocation, setActiveLocation] = useState<[number, number] | null>(null);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editInstructions, setEditInstructions] = useState("");
+    const [isEditing, setIsEditing] = useState(false);
 
     useEffect(() => {
         const stored = localStorage.getItem(`trip_${id}`);
@@ -51,6 +54,36 @@ export default function TripClientView({ id }: { id: string }) {
         }
         setLoading(false);
     }, [id]);
+
+    const handleEditTrip = async () => {
+        if (!editInstructions.trim() || !data) return;
+        setIsEditing(true);
+
+        try {
+            const response = await fetch("/api/edit-trip", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ currentTrip: data, instructions: editInstructions }),
+            });
+
+            if (!response.ok) throw new Error("Failed to edit trip");
+
+            const updatedData = await response.json();
+            setData(updatedData);
+
+            // Update persistence
+            const tripData = { id, ...updatedData, createdAt: new Date().toISOString() };
+            localStorage.setItem(`trip_${id}`, JSON.stringify(tripData));
+
+            setIsEditModalOpen(false);
+            setEditInstructions("");
+        } catch (error) {
+            console.error(error);
+            alert("Failed to update itinerary. Please try again.");
+        } finally {
+            setIsEditing(false);
+        }
+    };
 
     if (loading) {
         return (
@@ -84,7 +117,58 @@ export default function TripClientView({ id }: { id: string }) {
                         <p className="text-xs sm:text-sm text-primary/60 max-w-md truncate">{data.description}</p>
                     </div>
                 </div>
+                <button
+                    onClick={() => setIsEditModalOpen(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-secondary text-white rounded-md text-sm hover:bg-secondary/90 transition-colors shadow-sm"
+                >
+                    <Sparkles className="w-4 h-4" />
+                    <span className="hidden sm:inline">Edit with AI</span>
+                </button>
             </header>
+
+            {/* Edit Modal */}
+            {isEditModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                    <div className="bg-card w-full max-w-lg rounded-xl shadow-2xl border border-primary/10 overflow-hidden">
+                        <div className="p-4 border-b border-primary/10 flex justify-between items-center bg-primary/5">
+                            <h3 className="font-serif text-lg font-bold text-primary flex items-center gap-2">
+                                <Sparkles className="w-4 h-4 text-secondary" /> Adjust Itinerary
+                            </h3>
+                            <button onClick={() => setIsEditModalOpen(false)} className="text-primary/50 hover:text-secondary">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <p className="text-sm text-primary/70">
+                                Tell the AI what needs changing. Example: "Move the dinner on Day 1 to 8 PM" or "Replace the museum with a park".
+                            </p>
+                            <textarea
+                                value={editInstructions}
+                                onChange={(e) => setEditInstructions(e.target.value)}
+                                placeholder="Your instructions..."
+                                className="w-full h-32 bg-background border border-primary/20 rounded-md p-3 focus:outline-none focus:border-secondary resize-none"
+                                autoFocus
+                            />
+                        </div>
+                        <div className="p-4 bg-primary/5 flex justify-end gap-2">
+                            <button
+                                onClick={() => setIsEditModalOpen(false)}
+                                className="px-4 py-2 text-primary/60 hover:text-primary transition-colors text-sm"
+                                disabled={isEditing}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleEditTrip}
+                                disabled={isEditing || !editInstructions.trim()}
+                                className="px-6 py-2 bg-secondary text-white rounded-md shadow-md hover:bg-secondary/90 transition-all text-sm flex items-center gap-2"
+                            >
+                                {isEditing ? "Updating..." : "Update Plan"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <main className="flex-1 flex flex-col lg:flex-row h-[calc(100vh-80px)] overflow-hidden">
                 {/* Timeline Sidebar */}
@@ -99,8 +183,8 @@ export default function TripClientView({ id }: { id: string }) {
                                     setExpandedActivityIndex(null); // Close expanded items when changing days
                                 }}
                                 className={`flex-shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 border ${selectedDayIndex === idx
-                                        ? "bg-secondary text-white border-secondary shadow-md"
-                                        : "bg-background text-primary/70 border-primary/10 hover:border-secondary/50 hover:text-secondary"
+                                    ? "bg-secondary text-white border-secondary shadow-md"
+                                    : "bg-background text-primary/70 border-primary/10 hover:border-secondary/50 hover:text-secondary"
                                     }`}
                             >
                                 {/* Format date if valid, else fallback to Day X */}

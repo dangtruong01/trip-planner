@@ -11,7 +11,7 @@ export default function PlanTrip() {
     const [places, setPlaces] = useState<string>("");
     const [dates, setDates] = useState({ start: "", end: "" });
     const [preferences, setPreferences] = useState<string[]>([]);
-    const [attachments, setAttachments] = useState<string[]>([]); // Base64 strings
+    const [attachments, setAttachments] = useState<{ name: string; data: string }[]>([]); // {name, base64}
     const [loading, setLoading] = useState(false);
 
     const vibeOptions = [
@@ -44,16 +44,26 @@ export default function PlanTrip() {
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
             const files = Array.from(e.target.files);
-            const base64Promises = files.map((file) => {
-                return new Promise<string>((resolve) => {
-                    const reader = new FileReader();
-                    reader.onloadend = () => resolve(reader.result as string);
-                    reader.readAsDataURL(file);
-                });
-            });
-            const results = await Promise.all(base64Promises);
-            setAttachments([...attachments, ...results]);
+            const newAttachments = await Promise.all(
+                files.map((file) => {
+                    return new Promise<{ name: string; data: string }>((resolve) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () =>
+                            resolve({
+                                name: file.name,
+                                data: reader.result as string,
+                            });
+                        reader.readAsDataURL(file);
+                    });
+                })
+            );
+            setAttachments([...attachments, ...newAttachments]);
+            e.target.value = ""; // Reset input so the same file can be selected again if removed
         }
+    };
+
+    const handleRemoveAttachment = (index: number) => {
+        setAttachments(attachments.filter((_, i) => i !== index));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -64,7 +74,13 @@ export default function PlanTrip() {
             const response = await fetch("/api/generate", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ cities, places, dates, preferences, attachments }), // Send attachments
+                body: JSON.stringify({
+                    cities,
+                    places,
+                    dates,
+                    preferences,
+                    attachments: attachments.map(a => a.data) // Send only data string to API for now
+                }),
             });
 
             if (!response.ok) throw new Error("Failed to generate itinerary");
@@ -219,7 +235,25 @@ export default function PlanTrip() {
                             </label>
                         </div>
                         {attachments.length > 0 && (
-                            <p className="text-xs text-primary/50">{attachments.length} file(s) attached</p>
+                            <div className="flex flex-col gap-2 mt-4">
+                                {attachments.map((file, idx) => (
+                                    <div key={idx} className="flex items-center justify-between bg-card border border-primary/10 p-3 rounded-md animate-in slide-in-from-bottom-2">
+                                        <div className="flex items-center gap-3 overflow-hidden">
+                                            <div className="p-2 bg-primary/5 rounded-full">
+                                                <Feather className="w-4 h-4 text-secondary" />
+                                            </div>
+                                            <span className="text-sm text-primary/80 truncate max-w-[200px]">{file.name}</span>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleRemoveAttachment(idx)}
+                                            className="p-2 text-primary/30 hover:text-red-500 transition-colors"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
                         )}
                     </div>
 

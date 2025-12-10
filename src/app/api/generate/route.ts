@@ -35,6 +35,8 @@ export async function POST(req: Request) {
       Specific wishes: ${places}.
       
       I have attached some documents/images for context (e.g. flight tickets, inspiration). Use them to refine the location or timing if applicable.
+      
+      CRITICAL INSTRUCTION: For every "Lunch" and "Dinner" slot, you MUST suggest a specific restaurant or food spot that fits the user's vibe. Include the cuisine type and why it is recommended.
 
       Return a JSON object strictly following this structure (no markdown code blocks, just raw JSON):
       {
@@ -48,8 +50,8 @@ export async function POST(req: Request) {
             "activities": [
               {
                 "time": "HH:MM",
-                "place": "Name of the place",
-                "description": "What to do there",
+                "place": "Name of the place (or Restaurant Name)",
+                "description": "What to do there. (If restaurant: Cuisine type & why)",
                 "coordinates": { "lat": 0.0, "lng": 0.0 }
               }
             ]
