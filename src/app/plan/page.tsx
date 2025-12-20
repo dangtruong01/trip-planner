@@ -11,6 +11,9 @@ export default function PlanTrip() {
     const [places, setPlaces] = useState<string>("");
     const [dates, setDates] = useState({ start: "", end: "" });
     const [preferences, setPreferences] = useState<string[]>([]);
+    const [budget, setBudget] = useState("Moderate");
+    const [companions, setCompanions] = useState("Couple");
+    const [pacing, setPacing] = useState("Balanced");
     const [attachments, setAttachments] = useState<{ name: string; data: string }[]>([]); // {name, base64}
     const [loading, setLoading] = useState(false);
 
@@ -79,6 +82,9 @@ export default function PlanTrip() {
                     places,
                     dates,
                     preferences,
+                    budget,
+                    companions,
+                    pacing,
                     attachments: attachments.map(a => a.data) // Send only data string to API for now
                 }),
             });
@@ -211,6 +217,69 @@ export default function PlanTrip() {
                                     className="w-full bg-background border border-primary/20 rounded-md p-3 focus:outline-none focus:border-secondary transition-all text-primary/80"
                                     required
                                 />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Travel Details: Budget, Companions, Pacing */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                        {/* Budget */}
+                        <div className="space-y-4">
+                            <label className="block text-lg font-serif text-secondary">Budget</label>
+                            <div className="flex flex-col gap-2">
+                                {["Budget", "Moderate", "Luxury"].map((opt) => (
+                                    <button
+                                        key={opt}
+                                        type="button"
+                                        onClick={() => setBudget(opt)}
+                                        className={`px-4 py-2 rounded-md border text-left transition-all ${budget === opt
+                                            ? "bg-secondary text-white border-secondary"
+                                            : "bg-background text-primary border-primary/20 hover:border-primary/50"
+                                            }`}
+                                    >
+                                        {opt}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Companions */}
+                        <div className="space-y-4">
+                            <label className="block text-lg font-serif text-secondary">Companions</label>
+                            <div className="flex flex-col gap-2">
+                                {["Solo", "Couple", "Family", "Friends"].map((opt) => (
+                                    <button
+                                        key={opt}
+                                        type="button"
+                                        onClick={() => setCompanions(opt)}
+                                        className={`px-4 py-2 rounded-md border text-left transition-all ${companions === opt
+                                            ? "bg-secondary text-white border-secondary"
+                                            : "bg-background text-primary border-primary/20 hover:border-primary/50"
+                                            }`}
+                                    >
+                                        {opt}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Pacing */}
+                        <div className="space-y-4">
+                            <label className="block text-lg font-serif text-secondary">Pacing</label>
+                            <div className="flex flex-col gap-2">
+                                {["Relaxed", "Balanced", "Packed"].map((opt) => (
+                                    <button
+                                        key={opt}
+                                        type="button"
+                                        onClick={() => setPacing(opt)}
+                                        className={`px-4 py-2 rounded-md border text-left transition-all ${pacing === opt
+                                            ? "bg-secondary text-white border-secondary"
+                                            : "bg-background text-primary border-primary/20 hover:border-primary/50"
+                                            }`}
+                                    >
+                                        {opt}
+                                    </button>
+                                ))}
                             </div>
                         </div>
                     </div>

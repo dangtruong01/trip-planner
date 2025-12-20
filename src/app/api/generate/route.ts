@@ -1,9 +1,9 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   try {
-    const { cities, places, dates, preferences, attachments } = await req.json();
+    const { cities, places, dates, preferences, attachments, budget, companions, pacing } = await req.json();
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
@@ -29,35 +29,53 @@ export async function POST(req: Request) {
 
     const promptText = `
       Plan a detailed trip itinerary.
-      Destinations: ${cities.join(", ")}.
-      Dates: ${dates.start} to ${dates.end}.
-      Preferences: ${preferences.join(", ")}.
+  Destinations: ${cities.join(", ")}.
+Dates: ${dates.start} to ${dates.end}.
+Preferences: ${preferences.join(", ")}.
       Specific wishes: ${places}.
       
-      I have attached some documents/images for context (e.g. flight tickets, inspiration). Use them to refine the location or timing if applicable.
-      
-      CRITICAL INSTRUCTION: For every "Lunch" and "Dinner" slot, you MUST suggest a specific restaurant or food spot that fits the user's vibe. Include the cuisine type and why it is recommended.
+      ** TRAVEL CONTEXT ** (Vital for tailoring the plan):
+      - ** Budget **: ${budget} (Adjust dining / activities accordingly.E.g.Luxury = Fine dining, Budget = Street food / Free spots).
+      - ** Companions **: ${companions} (E.g.Family = Kid friendly, Couple = Romantic, Friends = Nightlife / Group fun).
+      - ** Pacing **: ${pacing} (E.g.Relaxed = Low intensity, late starts.Packed = Maximized sightseeing).
 
-      Return a JSON object strictly following this structure (no markdown code blocks, just raw JSON):
-      {
-        "tripName": "A catchy name for the trip",
-        "description": "A brief summary of the journey",
-        "days": [
-          {
-            "date": "YYYY-MM-DD",
-            "dayNumber": 1,
-            "city": "City Name",
-            "activities": [
-              {
-                "time": "HH:MM",
-                "place": "Name of the place (or Restaurant Name)",
-                "description": "What to do there. (If restaurant: Cuisine type & why)",
-                "coordinates": { "lat": 0.0, "lng": 0.0 }
-              }
-            ]
-          }
-        ]
-      }
+      I have attached some documents / images for context(e.g.flight tickets, hotel bookings, inspiration).
+      
+      CRITICAL INSTRUCTIONS:
+  1. ** Analyze Attachments **: Extract EXACT flight times, hotel names, and locations if visible in the attachments.
+          - If a flight lands at 2pm, start the itinerary from ~4pm(accounting for travel).
+          - If a hotel is specified, use it as the starting point for daily activities.
+          - Create explicit "Arrival" or "Check-in" activities if you find this info.
+      
+      2. ** Dining **: For every "Lunch" and "Dinner" slot, you MUST suggest a specific restaurant or food spot.Include the cuisine type and why it is recommended.
+
+      3. ** Logistics **: Between activities, briefly mention logical travel methods(e.g. "Take the subway 15 mins" or "Walk 10 mins").Be realistic about travel times.
+
+      4. ** Accommodation **: If a hotel is mentioned in the files or if you suggest one, put it in the "accommodation" field for that day, NOT as an activity.
+
+      5. ** Structure **:
+      Return a JSON object strictly following this structure(no markdown code blocks, just raw JSON):
+{
+  "tripName": "A catchy name for the trip",
+    "description": "A brief summary of the journey",
+      "days": [
+        {
+          "date": "YYYY-MM-DD",
+          "dayNumber": 1,
+          "city": "City Name",
+          "accommodation": "Name of Hotel/Stay for this night",
+          "activities": [
+            {
+              "time": "HH:MM",
+              "place": "Name of the place (or Restaurant Name)",
+              "description": "Description of activity AND logistics to get here. (If restaurant: Cuisine & why)",
+              "coordinates": { "lat": 0.0, "lng": 0.0 }, // MUST be accurate for the map
+              "address": "Short address for map search"
+            }
+          ]
+        }
+      ]
+}
       Ensure coordinates are approximate but accurate enough for map visualization.
     `;
 
